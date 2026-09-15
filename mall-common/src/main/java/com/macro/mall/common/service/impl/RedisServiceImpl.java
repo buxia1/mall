@@ -1,6 +1,8 @@
 package com.macro.mall.common.service.impl;
 
 import com.macro.mall.common.service.RedisService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@ConditionalOnBean(RedisConnectionFactory.class)
 public class RedisServiceImpl implements RedisService {
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -21,7 +24,11 @@ public class RedisServiceImpl implements RedisService {
 
     public Object get(String key) { return key == null ? null : redisTemplate.opsForValue().get(key); }
     public void set(String key, Object value) { if (key != null) redisTemplate.opsForValue().set(key, value); }
-    public void set(String key, Object value, long expire) { if (key != null) redisTemplate.opsForValue().set(key, value, expire, TimeUnit.SECONDS); }
+    public void set(String key, Object value, long expire) {
+        if (key == null) return;
+        if (expire > 0) redisTemplate.opsForValue().set(key, value, expire, TimeUnit.SECONDS);
+        else redisTemplate.opsForValue().set(key, value);
+    }
     public Boolean expire(String key, long expire) { return key != null && expire > 0 ? redisTemplate.expire(key, expire, TimeUnit.SECONDS) : false; }
     public Long getExpire(String key) { return key == null ? -1L : redisTemplate.getExpire(key, TimeUnit.SECONDS); }
     public Boolean hasKey(String key) { return key != null && Boolean.TRUE.equals(redisTemplate.hasKey(key)); }
