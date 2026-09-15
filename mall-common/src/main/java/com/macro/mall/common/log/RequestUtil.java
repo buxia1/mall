@@ -12,6 +12,9 @@ import java.util.Optional;
 public final class RequestUtil {
 
     private static final int MAX_PARAMETER_LENGTH = 1024;
+    private static final long MAX_LOGGED_CONTENT_LENGTH = 64 * 1024;
+    private static final int MAX_LOGGED_PARAMETER_COUNT = 100;
+    private static final Map<String, Object> SKIPPED_PARAMETERS = Map.of("_logging", "[SKIPPED]");
 
     private RequestUtil() {
     }
@@ -33,11 +36,15 @@ public final class RequestUtil {
     }
 
     public static Map<String, Object> getSafeParameters(HttpServletRequest request) {
-        Map<String, Object> parameters = new LinkedHashMap<>();
-        if (isMultipart(request)) {
-            return parameters;
+        if (isMultipart(request) || request.getContentLengthLong() > MAX_LOGGED_CONTENT_LENGTH) {
+            return SKIPPED_PARAMETERS;
         }
-        request.getParameterMap().forEach((name, values) -> parameters.put(name, sanitize(name, values)));
+        Map<String, String[]> requestParameters = request.getParameterMap();
+        if (requestParameters.size() > MAX_LOGGED_PARAMETER_COUNT) {
+            return SKIPPED_PARAMETERS;
+        }
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        requestParameters.forEach((name, values) -> parameters.put(name, sanitize(name, values)));
         return parameters;
     }
 
