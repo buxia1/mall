@@ -10,6 +10,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RequestUtilTest {
 
     @Test
+    void skipsMultipartRequestPayload() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setContentType("multipart/form-data; boundary=boundary");
+        request.addParameter("file", "not-for-logs");
+
+        assertThat(RequestUtil.getSafeParameters(request)).isEqualTo(Map.of("_logging", "[SKIPPED]"));
+    }
+
+    @Test
     void skipsLargeFormLikeRequestsBeforeReadingParameters() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setContentType("application/x-www-form-urlencoded");
