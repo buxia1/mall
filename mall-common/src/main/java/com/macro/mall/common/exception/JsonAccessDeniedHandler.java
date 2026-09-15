@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Writes forbidden responses; it must be wired by the later security module.
+ * Writes forbidden responses; future {@code mall-security} must wire this handler.
  */
 public class JsonAccessDeniedHandler implements AccessDeniedHandler {
 
