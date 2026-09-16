@@ -42,7 +42,12 @@ public final class RequestUtil {
         }
         int valueCount = 0;
         int characterCount = 0;
-        for (String[] values : requestParameters.values()) {
+        for (Map.Entry<String, String[]> entry : requestParameters.entrySet()) {
+            characterCount += entry.getKey().length();
+            if (characterCount > MAX_LOGGED_CHARACTER_COUNT) {
+                return SKIPPED_PARAMETERS;
+            }
+            String[] values = entry.getValue();
             if (values == null) {
                 continue;
             }

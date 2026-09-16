@@ -59,6 +59,14 @@ class RequestUtilTest {
     }
 
     @Test
+    void skipsParametersWhoseNamesExceedTheLoggingBudget() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addParameter("name" + "x".repeat(9 * 1024), "value");
+
+        assertThat(RequestUtil.getSafeParameters(request)).isEqualTo(Map.of("_logging", "[SKIPPED]"));
+    }
+
+    @Test
     void usesRemoteAddressInsteadOfForwardedHeaders() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRemoteAddr("192.0.2.10");
