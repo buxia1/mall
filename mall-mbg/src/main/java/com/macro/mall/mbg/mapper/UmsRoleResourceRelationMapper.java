@@ -8,6 +8,8 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 public interface UmsRoleResourceRelationMapper {
     @Select("SELECT id, role_id AS roleId, resource_id AS resourceId FROM ums_role_resource_relation WHERE id=#{id}")
     UmsRoleResourceRelation selectById(@Param("id") Long id);
@@ -21,4 +23,10 @@ public interface UmsRoleResourceRelationMapper {
 
     @Delete("DELETE FROM ums_role_resource_relation WHERE id=#{id}")
     int deleteById(@Param("id") Long id);
+
+    @Delete("DELETE FROM ums_role_resource_relation WHERE role_id=#{roleId}")
+    int deleteByRoleId(@Param("roleId") Long roleId);
+
+    @Insert("<script>INSERT INTO ums_role_resource_relation (role_id, resource_id) VALUES <foreach collection=\"resourceIds\" item=\"resourceId\" separator=\",\">(#{roleId}, #{resourceId})</foreach></script>")
+    int insertBatch(@Param("roleId") Long roleId, @Param("resourceIds") List<Long> resourceIds);
 }
