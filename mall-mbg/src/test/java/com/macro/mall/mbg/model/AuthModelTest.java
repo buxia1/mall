@@ -34,6 +34,9 @@ class AuthModelTest {
         UmsRoleMenuRelation roleMenu = new UmsRoleMenuRelation();
         roleMenu.setRoleId(2L);
         roleMenu.setMenuId(3L);
+        UmsRoleResourceRelation roleResource = new UmsRoleResourceRelation();
+        roleResource.setRoleId(2L);
+        roleResource.setResourceId(4L);
 
         assertThat(admin.getUsername()).isEqualTo("admin");
         assertThat(admin.getCreateTime()).isEqualTo(now);
@@ -43,5 +46,6 @@ class AuthModelTest {
         assertThat(category.getSort()).isEqualTo(4);
         assertThat(adminRole.getRoleId()).isEqualTo(2L);
         assertThat(roleMenu.getMenuId()).isEqualTo(3L);
+        assertThat(roleResource.getResourceId()).isEqualTo(4L);
     }
 }
