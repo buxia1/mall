@@ -20,6 +20,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -62,6 +63,30 @@ class WebLogAspectTest {
                 .andExpect(jsonPath("$.data").value("ok"));
 
         assertThat(appender.list).isNotEmpty();
+    }
+
+    @Test
+    void logsOnlyASafeSummaryForSensitiveResponseValues() throws Exception {
+        MockMvc mockMvc = webAppContextSetup(webApplicationContext).build();
+
+        mockMvc.perform(get("/test/sensitive"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.value").value("safe"));
+
+        String output = appender.list.get(0).getFormattedMessage();
+        assertThat(output).contains("SensitiveResponse [omitted]")
+                .doesNotContain("password=secret");
+    }
+
+    @Test
+    void propagatesControllerExceptionsAfterLoggingTheirRequest() {
+        MockMvc mockMvc = webAppContextSetup(webApplicationContext).build();
+
+        assertThatThrownBy(() -> mockMvc.perform(get("/test/failure")))
+                .hasRootCauseInstanceOf(IllegalStateException.class);
+
+        assertThat(appender.list).hasSize(1);
+        assertThat(appender.list.get(0).getFormattedMessage()).contains("response=[not-completed]");
     }
 
     @Configuration

@@ -39,6 +39,36 @@ class RequestUtilTest {
     }
 
     @Test
+    void skipsOneParameterWithTooManyValues() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        for (int index = 0; index < 101; index++) {
+            request.addParameter("tag", "value" + index);
+        }
+
+        assertThat(RequestUtil.getSafeParameters(request)).isEqualTo(Map.of("_logging", "[SKIPPED]"));
+    }
+
+    @Test
+    void skipsParametersWhoseAggregateValueSizeExceedsTheLoggingBudget() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        for (int index = 0; index < 9; index++) {
+            request.addParameter("filter", "x".repeat(1024));
+        }
+
+        assertThat(RequestUtil.getSafeParameters(request)).isEqualTo(Map.of("_logging", "[SKIPPED]"));
+    }
+
+    @Test
+    void usesRemoteAddressInsteadOfForwardedHeaders() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("192.0.2.10");
+        request.addHeader("X-Forwarded-For", "198.51.100.2");
+        request.addHeader("X-Real-IP", "203.0.113.3");
+
+        assertThat(RequestUtil.getClientIp(request)).isEqualTo("192.0.2.10");
+    }
+
+    @Test
     void redactsSensitiveParametersWhenRequestIsWithinLoggingLimits() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addParameter("password", "not-for-logs");
