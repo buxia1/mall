@@ -18,10 +18,19 @@ public interface UmsAdminMapper {
     UmsAdmin selectById(@Param("id") Long id);
     @Select("SELECT id, username, password, icon, email, nick_name AS nickName, note, create_time AS createTime, login_time AS loginTime, status FROM ums_admin WHERE username = #{username}")
     UmsAdmin selectByUsername(@Param("username") String username);
+
+    /** 按用户名或昵称模糊分页查询，排序固定，分页由 PageHelper 拦截。 */
+    @Select("<script>SELECT id, username, password, icon, email, nick_name AS nickName, note, create_time AS createTime, login_time AS loginTime, status FROM ums_admin <where><if test=\"keyword != null and keyword != ''\">(username LIKE CONCAT('%', #{keyword}, '%') OR nick_name LIKE CONCAT('%', #{keyword}, '%'))</if></where> ORDER BY id DESC</script>")
+    List<UmsAdmin> selectList(@Param("keyword") String keyword);
+
     @Insert("INSERT INTO ums_admin (username, password, icon, email, nick_name, note, create_time, login_time, status) VALUES (#{username}, #{password}, #{icon}, #{email}, #{nickName}, #{note}, #{createTime}, #{loginTime}, #{status})") @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UmsAdmin admin);
     @Update("UPDATE ums_admin SET username=#{username}, password=#{password}, icon=#{icon}, email=#{email}, nick_name=#{nickName}, note=#{note}, create_time=#{createTime}, login_time=#{loginTime}, status=#{status} WHERE id=#{id}")
     int updateById(UmsAdmin admin);
+    @Update("UPDATE ums_admin SET password=#{password} WHERE id=#{id}")
+    int updatePassword(@Param("id") Long id, @Param("password") String password);
+    @Update("UPDATE ums_admin SET status=#{status} WHERE id=#{id}")
+    int updateStatus(@Param("id") Long id, @Param("status") Integer status);
     @Delete("DELETE FROM ums_admin WHERE id = #{id}") int deleteById(@Param("id") Long id);
 
     @Select("SELECT DISTINCT r.id, r.name, r.description, r.admin_count AS adminCount, r.create_time AS createTime, r.status, r.sort FROM ums_role r JOIN ums_admin_role_relation ar ON r.id = ar.role_id WHERE ar.admin_id = #{adminId}")

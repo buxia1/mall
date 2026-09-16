@@ -15,6 +15,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.5.0</spring-boot.version>
         <!--
+          必须开启 -parameters：本项目只 import 了 spring-boot-dependencies BOM，没有继承
+          spring-boot-starter-parent，而 @RequestParam / @PathVariable 不写名字时依赖方法参数名。
+          不开这个开关，控制器会在运行时报
+          "Name for argument of type [...] not specified"（spring-boot-starter-parent 默认会设置它）。
+        -->
+        <maven.compiler.parameters>true</maven.compiler.parameters>
+        <!--
           JUnit tag excluded from the default build. Tests tagged "integration" need a
           live MySQL/Redis; run them with -Dexcluded.groups=none after the local services
           are up (see sql/ and application-dev.yml.example).
