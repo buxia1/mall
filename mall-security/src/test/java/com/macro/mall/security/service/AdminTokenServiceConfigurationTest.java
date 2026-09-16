@@ -22,9 +22,12 @@ class AdminTokenServiceConfigurationTest {
                 .run(context -> assertThat(context).hasSingleBean(AdminTokenService.class));
     }
 
+    /**
+     * 登录会话必须依赖 Redis，缺少时应当启动失败，而不是注册一个不可用的会话服务。
+     */
     @Test
-    void sessionServiceIsNotCreatedWithoutTheConditionalRedisLayer() {
-        contextRunner.run(context -> assertThat(context).doesNotHaveBean(AdminTokenService.class));
+    void sessionServiceFailsFastWithoutTheRedisLayer() {
+        contextRunner.run(context -> assertThat(context).hasFailed());
     }
 
     @Configuration(proxyBeanMethods = false)
