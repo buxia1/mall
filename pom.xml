@@ -18,6 +18,7 @@
 
     <modules>
         <module>mall-common</module>
+        <module>mall-mbg</module>
     </modules>
 
     <dependencyManagement>
