@@ -14,6 +14,12 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.5.0</spring-boot.version>
+        <!--
+          JUnit tag excluded from the default build. Tests tagged "integration" need a
+          live MySQL/Redis; run them with -Dexcluded.groups=none after the local services
+          are up (see sql/ and application-dev.yml.example).
+        -->
+        <excluded.groups>integration</excluded.groups>
     </properties>
 
     <modules>
@@ -34,4 +40,17 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.4</version>
+                <configuration>
+                    <excludedGroups>${excluded.groups}</excludedGroups>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -146,8 +147,13 @@ class SecurityConfigTest {
         return resource;
     }
 
+    /**
+     * 这个测试把 {@code UmsAdminMapper} 和 {@code RedisService} 都 mock 掉了，不需要真实持久层。
+     * {@code mall-mbg} 引入 mybatis starter 后 {@code spring-boot-starter-jdbc} 会一起进类路径，
+     * 不排除数据源自动配置就会因为缺少 JDBC URL 而启动失败。
+     */
     @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @EnableAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
     @EnableWebSecurity
     @Import(SecurityConfig.class)
     static class TestApplication {

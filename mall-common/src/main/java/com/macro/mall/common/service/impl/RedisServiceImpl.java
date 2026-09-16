@@ -1,8 +1,6 @@
 package com.macro.mall.common.service.impl;
 
 import com.macro.mall.common.service.RedisService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -13,8 +11,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+/** Redis 是本项目的必需组件，所以不做条件装配，见 {@code BaseRedisConfig} 的说明。 */
 @Service
-@ConditionalOnBean(RedisConnectionFactory.class)
 public class RedisServiceImpl implements RedisService {
     private final RedisTemplate<String, Object> redisTemplate;
 

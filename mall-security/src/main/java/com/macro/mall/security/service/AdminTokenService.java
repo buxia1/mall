@@ -4,7 +4,6 @@ import com.macro.mall.common.service.RedisService;
 import com.macro.mall.security.component.AdminIdentity;
 import com.macro.mall.security.component.JwtProperties;
 import com.macro.mall.security.component.JwtTokenUtil;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -13,8 +12,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
 
+/**
+ * 后台登录会话：JWT 承载身份，Redis 承载可撤销的会话状态。
+ *
+ * <p>不做 {@code @ConditionalOnBean(RedisService.class)} 条件装配：本类由组件扫描发现，
+ * 条件在扫描阶段求值，那时 RedisService 还没注册，条件恒为 false。会话必须依赖 Redis，
+ * 缺失时应让启动失败而不是悄悄丢掉登录能力。
+ */
 @Service
-@ConditionalOnBean(RedisService.class)
 public class AdminTokenService {
     private static final String SESSION_KEY_PREFIX = "mall:security:admin-token:";
 

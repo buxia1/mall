@@ -1,7 +1,7 @@
 package com.macro.mall.common.config;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
@@ -15,15 +15,24 @@ import static org.mockito.Mockito.mock;
 
 class BaseRedisConfigTest {
 
-    @Test
-    void redisInfrastructureIsAbsentWithoutAConnectionFactory() {
-        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
-            context.register(BaseRedisConfig.class, RedisServiceImpl.class);
-            context.refresh();
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withUserConfiguration(BaseRedisConfig.class, RedisServiceImpl.class);
 
-            assertThat(context.getBeansOfType(RedisTemplate.class)).isEmpty();
-            assertThat(context.getBeansOfType(RedisService.class)).isEmpty();
-        }
+    @Test
+    void redisTemplateAndServiceAreWiredWhenAConnectionFactoryIsPresent() {
+        contextRunner.withBean(RedisConnectionFactory.class, () -> mock(RedisConnectionFactory.class))
+                .run(context -> {
+                    assertThat(context).hasSingleBean(RedisTemplate.class);
+                    assertThat(context).hasSingleBean(RedisService.class);
+                });
+    }
+
+    /**
+     * Redis 是必需组件：缺少连接工厂时应当启动失败暴露配置问题，而不是悄悄不注册 Bean。
+     */
+    @Test
+    void redisInfrastructureFailsFastWithoutAConnectionFactory() {
+        contextRunner.run(context -> assertThat(context).hasFailed());
     }
 
     @Test

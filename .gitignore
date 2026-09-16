@@ -1,2 +1,7 @@
 .worktrees/
 target/
+
+# 本地配置：包含数据库/Redis 连接串和 JWT 密钥，禁止提交。
+# 复制同目录下的 application-dev.yml.example 后按本机环境填写。
+**/application-dev.yml
+**/application-local.yml
