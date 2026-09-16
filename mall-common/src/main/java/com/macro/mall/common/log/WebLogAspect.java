@@ -19,10 +19,11 @@ public class WebLogAspect {
         WebLog webLog = new WebLog();
         webLog.setStartTime(System.currentTimeMillis());
         webLog.setMethod(point.getSignature().toLongString());
+        webLog.setResponseValue("[not-completed]");
         RequestUtil.currentRequest().ifPresent(request -> fillRequest(webLog, request));
         try {
             Object response = point.proceed();
-            webLog.setResponseValue(response);
+            webLog.setResponseValue(safeResponseSummary(response));
             return response;
         } finally {
             long ended = System.currentTimeMillis();
@@ -39,5 +40,9 @@ public class WebLogAspect {
         webLog.setHttpMethod(request.getMethod());
         webLog.setIp(RequestUtil.getClientIp(request));
         webLog.setRequestParameters(RequestUtil.getSafeParameters(request));
+    }
+
+    private String safeResponseSummary(Object response) {
+        return response == null ? "[not-completed]" : response.getClass().getSimpleName() + " [omitted]";
     }
 }

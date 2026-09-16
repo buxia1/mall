@@ -14,6 +14,8 @@ public final class RequestUtil {
     private static final int MAX_PARAMETER_LENGTH = 1024;
     private static final long MAX_LOGGED_CONTENT_LENGTH = 64 * 1024;
     private static final int MAX_LOGGED_PARAMETER_COUNT = 100;
+    private static final int MAX_LOGGED_VALUE_COUNT = 100;
+    private static final int MAX_LOGGED_CHARACTER_COUNT = 8 * 1024;
     private static final Map<String, Object> SKIPPED_PARAMETERS = Map.of("_logging", "[SKIPPED]");
 
     private RequestUtil() {
@@ -27,12 +29,7 @@ public final class RequestUtil {
     }
 
     public static String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",", 2)[0].trim();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        return realIp == null || realIp.isBlank() ? request.getRemoteAddr() : realIp;
+        return request.getRemoteAddr();
     }
 
     public static Map<String, Object> getSafeParameters(HttpServletRequest request) {
@@ -42,6 +39,28 @@ public final class RequestUtil {
         Map<String, String[]> requestParameters = request.getParameterMap();
         if (requestParameters.size() > MAX_LOGGED_PARAMETER_COUNT) {
             return SKIPPED_PARAMETERS;
+        }
+        int valueCount = 0;
+        int characterCount = 0;
+        for (Map.Entry<String, String[]> entry : requestParameters.entrySet()) {
+            characterCount += entry.getKey().length();
+            if (characterCount > MAX_LOGGED_CHARACTER_COUNT) {
+                return SKIPPED_PARAMETERS;
+            }
+            String[] values = entry.getValue();
+            if (values == null) {
+                continue;
+            }
+            valueCount += values.length;
+            if (valueCount > MAX_LOGGED_VALUE_COUNT) {
+                return SKIPPED_PARAMETERS;
+            }
+            for (String value : values) {
+                characterCount += value == null ? 0 : value.length();
+                if (characterCount > MAX_LOGGED_CHARACTER_COUNT) {
+                    return SKIPPED_PARAMETERS;
+                }
+            }
         }
         Map<String, Object> parameters = new LinkedHashMap<>();
         requestParameters.forEach((name, values) -> parameters.put(name, sanitize(name, values)));
