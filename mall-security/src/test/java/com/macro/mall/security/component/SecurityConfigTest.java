@@ -19,8 +19,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -46,11 +51,19 @@ class SecurityConfigTest {
     private UmsAdminMapper adminMapper;
     @Autowired
     private DynamicAuthorizationManager authorizationManager;
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @BeforeEach
     void resetMocksAndCache() {
         reset(redisService, adminMapper);
         authorizationManager.clearResourceCache();
+    }
+
+    @Test
+    void securityConfigurationStartsWithProductionComponents() {
+        assertThat(authorizationManager).isNotNull();
+        assertThat(jwtAuthenticationFilter).isNotNull();
     }
 
     @Test
@@ -84,8 +97,28 @@ class SecurityConfigTest {
         when(redisService.get(anyString())).thenReturn(null);
         when(adminMapper.selectResourcesByAdminId(7L)).thenReturn(List.of(resource("/protected")));
 
-        mockMvc.perform(get("/protected").header("Authorization", bearerToken()))
+        mockMvc.perform(get("/context/protected").contextPath("/context")
+                        .header("Authorization", bearerToken()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void serializedResourceCacheIsReusedWithoutAnotherMapperLookup() throws Exception {
+        AtomicReference<Object> storedCache = new AtomicReference<>();
+        ObjectMapper objectMapper = new ObjectMapper();
+        when(redisService.hasKey(anyString())).thenReturn(true);
+        when(redisService.get(anyString())).thenAnswer(invocation -> storedCache.get());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            storedCache.set(objectMapper.readValue(objectMapper.writeValueAsString(invocation.getArgument(1)),
+                    new TypeReference<Map<String, Object>>() { }));
+            return null;
+        }).when(redisService).set(anyString(), org.mockito.ArgumentMatchers.any());
+        when(adminMapper.selectResourcesByAdminId(7L)).thenReturn(List.of(resource("/protected")));
+
+        mockMvc.perform(get("/protected").header("Authorization", bearerToken())).andExpect(status().isOk());
+        mockMvc.perform(get("/protected").header("Authorization", bearerToken())).andExpect(status().isOk());
+
+        verify(adminMapper).selectResourcesByAdminId(7L);
     }
 
     @Test
@@ -145,18 +178,6 @@ class SecurityConfigTest {
         AdminTokenService adminTokenService(RedisService redisService, JwtTokenUtil jwtTokenUtil,
                                             JwtProperties properties) {
             return new AdminTokenService(redisService, jwtTokenUtil, properties);
-        }
-
-        @Bean
-        JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenUtil jwtTokenUtil,
-                                                        AdminTokenService tokenService) {
-            return new JwtAuthenticationFilter(jwtTokenUtil, tokenService);
-        }
-
-        @Bean
-        DynamicAuthorizationManager dynamicAuthorizationManager(UmsAdminMapper adminMapper,
-                                                                RedisService redisService) {
-            return new DynamicAuthorizationManager(adminMapper, redisService);
         }
 
         @RestController

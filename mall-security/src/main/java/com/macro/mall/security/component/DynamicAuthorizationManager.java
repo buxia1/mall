@@ -37,7 +37,7 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
                 || !(currentAuthentication.getPrincipal() instanceof AdminIdentity identity)) {
             return new AuthorizationDecision(false);
         }
-        String requestPath = context.getRequest().getRequestURI();
+        String requestPath = applicationPath(context);
         boolean granted = resourceUrlsFor(identity.id()).stream()
                 .anyMatch(resourceUrl -> pathMatcher.match(resourceUrl, requestPath));
         return new AuthorizationDecision(granted);
@@ -47,27 +47,38 @@ public class DynamicAuthorizationManager implements AuthorizationManager<Request
         redisService.remove(RESOURCE_CACHE_KEY);
     }
 
+    private String applicationPath(RequestAuthorizationContext context) {
+        String servletPath = context.getRequest().getServletPath();
+        if (servletPath != null && !servletPath.isEmpty()) {
+            return servletPath;
+        }
+        String contextPath = context.getRequest().getContextPath();
+        String requestUri = context.getRequest().getRequestURI();
+        return requestUri.startsWith(contextPath) ? requestUri.substring(contextPath.length()) : requestUri;
+    }
+
     private Set<String> resourceUrlsFor(Long adminId) {
-        Map<Long, Set<String>> cache = resourceCache();
-        Set<String> resourceUrls = cache.get(adminId);
+        Map<String, Set<String>> cache = resourceCache();
+        String cacheKey = String.valueOf(adminId);
+        Set<String> resourceUrls = cache.get(cacheKey);
         if (resourceUrls != null) {
             return resourceUrls;
         }
         Set<String> loadedUrls = resourceUrls(adminMapper.selectResourcesByAdminId(adminId));
-        cache.put(adminId, loadedUrls);
+        cache.put(cacheKey, loadedUrls);
         redisService.set(RESOURCE_CACHE_KEY, cache);
         return loadedUrls;
     }
 
     @SuppressWarnings("unchecked")
-    private Map<Long, Set<String>> resourceCache() {
+    private Map<String, Set<String>> resourceCache() {
         Object cached = redisService.get(RESOURCE_CACHE_KEY);
         if (!(cached instanceof Map<?, ?> cachedMap)) {
             return new HashMap<>();
         }
-        Map<Long, Set<String>> cache = new HashMap<>();
+        Map<String, Set<String>> cache = new HashMap<>();
         cachedMap.forEach((adminId, urls) -> {
-            if (adminId instanceof Long id && urls instanceof Collection<?> resourceUrls) {
+            if (adminId instanceof String id && urls instanceof Collection<?> resourceUrls) {
                 cache.put(id, resourceUrls.stream()
                         .filter(String.class::isInstance)
                         .map(String.class::cast)

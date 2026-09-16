@@ -1,6 +1,9 @@
 package com.macro.mall.security.component;
 
 import com.macro.mall.common.exception.JsonAccessDeniedHandler;
+import com.macro.mall.common.service.RedisService;
+import com.macro.mall.mbg.mapper.UmsAdminMapper;
+import com.macro.mall.security.service.AdminTokenService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,17 +16,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final DynamicAuthorizationManager authorizationManager;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          DynamicAuthorizationManager authorizationManager) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.authorizationManager = authorizationManager;
+    @Bean
+    JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenUtil jwtTokenUtil,
+                                                    AdminTokenService tokenService) {
+        return new JwtAuthenticationFilter(jwtTokenUtil, tokenService);
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    DynamicAuthorizationManager dynamicAuthorizationManager(UmsAdminMapper adminMapper,
+                                                            RedisService redisService) {
+        return new DynamicAuthorizationManager(adminMapper, redisService);
+    }
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter,
+                                            DynamicAuthorizationManager authorizationManager) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
