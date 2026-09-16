@@ -16,6 +16,8 @@ import java.util.List;
 public interface UmsAdminMapper {
     @Select("SELECT id, username, password, icon, email, nick_name AS nickName, note, create_time AS createTime, login_time AS loginTime, status FROM ums_admin WHERE id = #{id}")
     UmsAdmin selectById(@Param("id") Long id);
+    @Select("SELECT id, username, password, icon, email, nick_name AS nickName, note, create_time AS createTime, login_time AS loginTime, status FROM ums_admin WHERE username = #{username}")
+    UmsAdmin selectByUsername(@Param("username") String username);
     @Insert("INSERT INTO ums_admin (username, password, icon, email, nick_name, note, create_time, login_time, status) VALUES (#{username}, #{password}, #{icon}, #{email}, #{nickName}, #{note}, #{createTime}, #{loginTime}, #{status})") @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UmsAdmin admin);
     @Update("UPDATE ums_admin SET username=#{username}, password=#{password}, icon=#{icon}, email=#{email}, nick_name=#{nickName}, note=#{note}, create_time=#{createTime}, login_time=#{loginTime}, status=#{status} WHERE id=#{id}")
