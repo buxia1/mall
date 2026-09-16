@@ -34,6 +34,8 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -137,6 +139,26 @@ class SecurityConfigTest {
         verify(redisService).remove("mall:security:authorization:resources");
     }
 
+    /**
+     * 前端跑在 Vite dev server（另一个端口）上，跨域预检必须先于鉴权被应答，
+     * 否则连登录请求都发不出去 —— 这正是前端登录失败的原因。
+     */
+    @Test
+    void corsPreflightIsAnsweredBeforeAuthorization() throws Exception {
+        mockMvc.perform(options("/admin/login")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "content-type"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
+    @Test
+    void corsRejectsAnOriginOutsideTheAllowedPatterns() throws Exception {
+        mockMvc.perform(get("/admin/login").header("Origin", "https://evil.example.com"))
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+    }
+
     private String bearerToken() {
         return "Bearer " + tokenService.login(7L, "alice");
     }
@@ -168,6 +190,11 @@ class SecurityConfigTest {
         @Bean
         JwtTokenUtil jwtTokenUtil(JwtProperties properties) {
             return new JwtTokenUtil(properties);
+        }
+
+        @Bean
+        CorsProperties corsProperties() {
+            return new CorsProperties();
         }
 
         @Bean
