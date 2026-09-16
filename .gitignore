@@ -1,4 +1,4 @@
-.worktrees/
+.idea/
 target/
 
 # 本地配置：包含数据库/Redis 连接串和 JWT 密钥，禁止提交。
