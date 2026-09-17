@@ -17,7 +17,9 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: change-me
+      # 本机的 ds-redis 容器没有配置密码（CONFIG GET requirepass 为空）。
+      # 这里填了值反而会 AUTH 失败，保持为空。
+      password:
 
 mall:
   security:
